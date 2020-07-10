@@ -1,0 +1,42 @@
+Please see the following publication:
+
+Mesoudi et al. (2015) Proceedings of the Royal Society B, 282, 20142209.
+
+for details of methodology (e.g. questionnaire question text). Note that some of the variables are means for seasons 1 and 2 because initially these were analysed together, whereas in the paper results are presented for each season.
+
+
+Variable descriptions:
+
+subject: unique participant id number
+date: date on which the participant was run, in format ddmmyyyy
+group: SL=social learning, IL=individual learning
+culture: UK=White British, HK=Hong Kong, CI=Chinese Immigrant, CM=Chinese Mainland
+age: participant’s age in years
+sex: male or female
+seasonX_copies: number of hunts, out of 29, on which the participant copied in season X (where X=1, 2 or 3)
+sX_copybest: number of hunts, out of 29, on which the participant copied the best participant in season X            
+total_copies: total number of hunts over all three seasons, out of 87, on which the participant copied
+copy_frequency_sX: proportion of hunts on which the participant copied in season X
+copy_frequency_all: proportion of all hunts on which the participant copied
+score_seasonX: final cumulative score in season X, out of 30,000
+score_s1_s2_averaged: mean score of seasons 1 and 2
+rank_seasonX: rank in season X relative to the demonstrators, from 1 (best placed) to 6 (last placed)
+rank_s1_s2_averaged: mean rank for seasons 1 and 2
+collectivist_average: mean score of collectivist questions, from 1 to 7
+individualist_average: mean score of individualist questions, from 1 to 7
+horizontal_average: mean score of horizontal questions, from 1 to 7
+vertical_average: mean score of vertical questions, from 1 to 7
+collectivist_reversed: collectivist mean on reversed scores (1=7, 7=1)
+individualist_reversed: individualist mean on reversed scores (1=7, 7=1)
+horizontal_reversed: horizontal mean on reversed scores (1=7, 7=1)
+vertical_reversed: vertical mean on reversed scores (1=7, 7=1)
+culture_numeric: culture coded numerically
+q_X: Likert response from 1 to 7 on question X                    
+sX_copybest_propofcopies: proportion of total copies that the participant copied the best demonstrator in season X
+sX_copybest_propof29: proportion of total hunts (29) that the participant copied the best demonstrator in season X
+s1s2_score: mean score for seasons 1 and 2
+s1s2_copies: mean number of copies for seasons 1 and 2
+best_dem_S1S2: score of the best demonstrator in seasons 1 and 2
+best_dem_SX: score of the best demonstrator in season X
+s1s2_score_weighted: score divided by the best demonstrator’s score for that culture, for seasons 1 and 2
+sX_score_weighted: score divided by the best demonstrator’s score for that culture, for season X
