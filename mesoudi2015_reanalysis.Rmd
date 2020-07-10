@@ -1,0 +1,322 @@
+---
+title: "Bayesian reanalysis of Mesoudi et al. (2015)"
+author: "Alex Mesoudi"
+date: "22 May 2016"
+output: 
+  pdf_document:
+    fig_caption: yes
+    fig_height: 3
+    fig_width: 8
+    number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rethinking)
+library(ggplot2)
+library(ggsci)
+library(Rmisc)
+
+# load data from website
+HKdata <- read.csv("HKdata.csv")
+
+# select relevant data
+d <- HKdata[, c("culture", "age", "sex", "season1_copies", "season2_copies", "season3_copies")]
+
+# re-order cultural groups to match original paper
+d$culture <- factor(d$culture, levels=c('UK','HK','CI','CM'))
+```
+
+# Introduction
+
+This is a reanalysis of the data presented in Mesoudi, Chang, Murray & Lu (2015), using methods from Richard McElreath's Statistical Rethinking book and `rethinking` package (McElreath 2016). The reanalysis generates virtually identical results to the original analysis, but is hopefully more useful and transparent to other researchers.
+
+In Mesoudi et al. (2015) we found higher rates of social learning in a computer-based artifact-design task amongst participants from mainland China, compared to participants from the UK, from Hong Kong, and Chinese immigrant students studying in the UK. Participants were presented with 29 opportunities to either copy or not copy others during a season of 30 hunts (participants could not copy on the first hunt). Participants could see others' success rates, making social learning payoff-biased and therefore highly beneficial in this challenging task. There were 3 seasons, each with 29 opportunities to copy. Seasons 1 and 2 featured different environments but no within-season environmental change. Season 3 featured a different environment *and* within-season environmental change.
+
+# Visualisation of data
+
+The original paper presented bar charts of the proportion of copying per season as in Figure 1 below (Figure 2 in Mesoudi et al. 2015). We can see the higher copying proportion in Chinese Mainland (CM) participants in Seasons 1 and 2, but not in Season 3. In Season 3 the UK, HK and CI participants increased their copying frequency almost up to CM levels. 
+
+However, bar charts can obscure variation in data. Ideally visualisations would include representations of the actual data, and counts rather than proportions. Figures 2-4 show some alternatives. These show that there is a broad spread of copying frequencies within each cultural group, but that in Seasons 1 and 2 there are more high-copying CM participants compared to the other three groups.
+
+```{r echo=FALSE, fig.cap="Bar charts as in Mesoudi et al. (2015). UK=British, HK=Hong Kong, CI=Chinese Immigrants, CM=Chinese Mainland."}
+s1plot <- ggplot(d, aes(culture, season1_copies/29)) + stat_summary(fun = mean, geom = "bar", fill = "White", color = "Black") + coord_cartesian(ylim = c(0, 0.42)) + labs(x = "", y = "frequency of copying") + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + theme_bw() + ggtitle("Season 1") + theme(plot.title = element_text(hjust = 0.5))
+s2plot <- ggplot(d, aes(culture, season2_copies/29)) + stat_summary(fun = mean, geom = "bar", fill = "White", color = "Black") + coord_cartesian(ylim = c(0, 0.42)) + labs(x = "", y = "") + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + theme_bw() + ggtitle("Season 2") + theme(plot.title = element_text(hjust = 0.5))
+s3plot <- ggplot(d, aes(culture, season3_copies/29)) + stat_summary(fun = mean, geom = "bar", fill = "White", color = "Black") + coord_cartesian(ylim = c(0, 0.42)) + labs(x = "", y = "") + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + theme_bw() + ggtitle("Season 3") + theme(plot.title = element_text(hjust = 0.5))
+multiplot(s1plot, s2plot, s3plot, cols = 3)
+```
+
+```{r echo=FALSE, fig.cap="Jitter and box plots"}
+s1plot <- ggplot(d, aes(culture, season1_copies, color = culture))  + geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.3, alpha = 0.7, size = 0.7) + ggtitle("Season 1") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("Copying frequency") + xlab("Group")
+s2plot <- ggplot(d, aes(culture, season2_copies, color = culture))  + geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.3, alpha = 0.7, size = 0.7) + ggtitle("Season 2") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("") + xlab("Group")
+s3plot <- ggplot(d, aes(culture, season3_copies, color = culture))  + geom_boxplot(outlier.shape = NA) + geom_jitter(width = 0.3, alpha = 0.7, size = 0.7) + ggtitle("Season 3") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("") + xlab("Group")
+multiplot(s1plot, s2plot, s3plot, cols = 3)
+```
+
+```{r echo=FALSE, fig.cap="Count and box plots. The size of the circle indicates the number of participants at that value."}
+s1plot <- ggplot(d, aes(culture, season1_copies, color = culture))  + geom_boxplot(outlier.shape = NA) + geom_count(alpha = 0.7) + ggtitle("Season 1") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5)) + scale_color_npg() + ylab("Copying frequency") + xlab("Group")
+s2plot <- ggplot(d, aes(culture, season2_copies, color = culture))  + geom_boxplot(outlier.shape = NA) + geom_count(alpha = 0.7) + ggtitle("Season 2") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("") + xlab("Group")
+s3plot <- ggplot(d, aes(culture, season3_copies, color = culture))  + geom_boxplot(outlier.shape = NA) + geom_count(alpha = 0.7) + ggtitle("Season 3") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("") + xlab("Group")
+multiplot(s1plot, s2plot, s3plot, cols = 3)
+```
+
+```{r echo=FALSE, fig.cap="Violin plots, showing narrower bases for CM in Seasons 1 and 2, compared to other groups which are bottom-heavy."}
+s1plot <- ggplot(d, aes(culture, season1_copies, color = culture))  + geom_violin() + ggtitle("Season 1") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("Copying frequency") + xlab("Group")
+s2plot <- ggplot(d, aes(culture, season2_copies, color = culture))  + geom_violin() + ggtitle("Season 2") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("") + xlab("Group")
+s3plot <- ggplot(d, aes(culture, season3_copies, color = culture))  + geom_violin() + ggtitle("Season 3") + theme_bw() + theme(legend.position='none', plot.title = element_text(hjust = 0.5))+ scale_color_npg() + ylab("") + xlab("Group")
+multiplot(s1plot, s2plot, s3plot, cols = 3)
+```
+
+# Bayesian re-analysis
+
+```{r echo=FALSE, results='hide'}
+
+# create dummy vars for the cultural groups (UK=reference group)
+d$cultureHK <- ifelse( d$culture == "HK", 1, 0)
+d$cultureCI <- ifelse( d$culture == "CI", 1, 0)
+d$cultureCM <- ifelse( d$culture == "CM", 1, 0)
+d$female <- ifelse( d$sex == "Female", 1, 0)
+
+# season 1 models -----------------------------
+# null intercept-only model
+s1.null.model <- map(
+  alist(
+    season1_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a,
+    a ~ dnorm(0,1)
+  ) ,
+  data=d )
+
+# model with cultural group
+s1.culture.model <- map(
+  alist(
+    season1_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a + bHK*cultureHK + bCI*cultureCI + bCM*cultureCM,
+    a ~ dnorm(0,1) ,
+    bHK ~ dnorm(0,1) ,
+    bCI ~ dnorm(0,1) ,
+    bCM ~ dnorm(0,1)
+  ) ,
+  data=d )
+
+# full model with age and sex too
+s1.full.model <- map(
+  alist(
+    season1_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a + bHK*cultureHK + bCI*cultureCI + bCM*cultureCM + bA*age + bF*female,
+    a ~ dnorm(0,1) ,
+    bHK ~ dnorm(0,1) ,
+    bCI ~ dnorm(0,1) ,
+    bCM ~ dnorm(0,1) ,
+    bA ~ dnorm(0,0.5) ,
+    bF ~ dnorm(0,0.5)
+  ) ,
+  data=d )
+
+# compare models: full model best supported
+s1.compare <- compare(s1.null.model, s1.culture.model, s1.full.model)
+
+# precis of full model
+precis(s1.full.model) 
+# HK virtually identical to UK, CI slightly higher, CM much higher
+# also effect of sex - females higher than males
+# age has slight negative effect (older copy less)
+# NB very similar coefficients to models presented in the original paper
+
+# use stan instead - same outcome
+# s1.model.stan <- map2stan( s1.full.model , data=d , iter=1e4 , warmup=1000 )
+# precis(s1.model.stan)
+# pairs(s1.model.stan)
+
+# exponentiate to get relative odds (e.g. CM is 2.24 times more likely to copy than UK; women are 1.37 more likely than men)
+exp(coef(s1.full.model))
+
+
+# season 2 models------------------------------
+# null intercept-only model
+s2.null.model <- map(
+  alist(
+    season2_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a,
+    a ~ dnorm(0,1)
+  ) ,
+  data=d )
+
+# model with cultural group
+s2.culture.model <- map(
+  alist(
+    season2_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a + bHK*cultureHK + bCI*cultureCI + bCM*cultureCM,
+    a ~ dnorm(0,1) ,
+    bHK ~ dnorm(0,1) ,
+    bCI ~ dnorm(0,1) ,
+    bCM ~ dnorm(0,1)
+  ) ,
+  data=d )
+
+# full model with age and sex too
+s2.full.model <- map(
+  alist(
+    season2_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a + bHK*cultureHK + bCI*cultureCI + bCM*cultureCM + bA*age + bF*female,
+    a ~ dnorm(0,1) ,
+    bHK ~ dnorm(0,1) ,
+    bCI ~ dnorm(0,1) ,
+    bCM ~ dnorm(0,1) ,
+    bA ~ dnorm(0,0.5) ,
+    bF ~ dnorm(0,0.5)
+  ) ,
+  data=d )
+
+# compare models: full model best supported
+s2.compare <- compare(s2.null.model, s2.culture.model, s2.full.model)
+
+# precis of full model
+precis(s2.full.model) 
+# HK virtually identical to UK, CI slightly lower, CM much higher
+# also effect of sex - females higher than males
+# age has no effect
+# NB very similar coefficients to models presented in the original paper
+
+# use stan instead - same outcome
+# s2.model.stan <- map2stan( s2.full.model , data=d , iter=1e4 , warmup=1000 )
+# precis(s2.model.stan)
+# pairs(s2.model.stan)
+
+# exponentiate to get relative odds
+exp(coef(s2.full.model))
+
+
+# season 3 models---------------------------------
+# null intercept-only model
+s3.null.model <- map(
+  alist(
+    season3_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a,
+    a ~ dnorm(0,1)
+  ) ,
+  data=d )
+
+# model with cultural group
+s3.culture.model <- map(
+  alist(
+    season3_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a + bHK*cultureHK + bCI*cultureCI + bCM*cultureCM,
+    a ~ dnorm(0,1) ,
+    bHK ~ dnorm(0,1) ,
+    bCI ~ dnorm(0,1) ,
+    bCM ~ dnorm(0,1)
+  ) ,
+  data=d )
+
+# full model with age and sex too
+s3.full.model <- map(
+  alist(
+    season3_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a + bHK*cultureHK + bCI*cultureCI + bCM*cultureCM + bA*age + bF*female,
+    a ~ dnorm(0,1) ,
+    bHK ~ dnorm(0,1) ,
+    bCI ~ dnorm(0,1) ,
+    bCM ~ dnorm(0,1) ,
+    bA ~ dnorm(0,0.5) ,
+    bF ~ dnorm(0,0.5)
+  ) ,
+  data=d )
+
+# compare models: full model and culture model equally supported
+s3.compare <- compare(s3.null.model, s3.culture.model, s3.full.model)
+
+# precis of full model
+precis(s3.full.model) 
+# CI virtually identical to UK, HK and CM are higher
+# also effect of sex - females higher than males
+# age and sex have very weak effects
+# NB very similar coefficients to models presented in the original paper
+
+# use stan instead - same outcome
+# s3.model.stan <- map2stan( s3.full.model , data=d , iter=1e4 , warmup=1000 )
+# precis(s3.model.stan)
+# pairs(s3.model.stan)
+
+# exponentiate to get relative odds (e.g. CM is 2.24 times more likely to copy than UK; women are 1.37 more likely than men)
+exp(coef(s3.full.model))
+
+```
+
+The original paper used negative binomial regression to compare copying proportions across cultural groups. These regressions are shown in Table 1 of Mesoudi et al. (2015). Here I use the `map` function from the `rethinking` package to compare cultural groups in an aggregated binomial model. The dependent measure is the number of hunts (out of 29) on which a participant copied another participant. This is performed separately for season 1, 2 and 3, each of which featured 29 opportunities to copy[^1]. For each season three models are compared: an intercept-only model, a model with cultural group as a predictor, and a full model with cultural group, age and sex as predictors. UK is the reference group. The code for the full model of Season 1 is:
+
+[^1]: I do not run a single regression with season as a within-participant factor because, as noted above, Season 3 introduces within-season environmental change and so is not comparable to the others. Seasons 1 and 2 could be combined, but the gain in having one fewer model does not seem to me to outweigh the cost of having coefficients that are harder to interpret.
+
+```{r echo=TRUE, eval=FALSE}
+
+s1.full.model <- map(
+  alist(
+    season1_copies ~ dbinom( 29 , p ) ,
+    logit(p) <- a + bHK*cultureHK + bCI*cultureCI + bCM*cultureCM + bA*age + bF*female,
+    a ~ dnorm(0,1) ,
+    bHK ~ dnorm(0,1) ,
+    bCI ~ dnorm(0,1) ,
+    bCM ~ dnorm(0,1) ,
+    bA ~ dnorm(0,0.5) ,
+    bF ~ dnorm(0,0.5)
+  ) ,
+  data=d )
+
+```
+
+with Season 2 and 3 identical except for the dependent measures. I also ran these models with MCMC using `map2stan` but the results were virtually identical, so I do not report this here. 
+
+## Seasons 1 and 2
+
+For both Seasons 1 and 2 the full model is overwhelmingly best supported:
+
+```{r echo=FALSE, eval=TRUE, comment=""}
+s1.compare
+s2.compare
+```
+
+The full model for Season 1 is shown below, along with exponentiated coefficients to give relative odds (e.g. CM participants are 2.24 times more likely to copy compared to UK participants). HK participants are virtually identical in copying frequency to UK participants. CI are slightly higher, and CM are much higher. Women copy more than men, and age has little effect.
+
+\newpage
+\pagebreak
+
+```{r echo=FALSE, eval=TRUE, tidy=TRUE, comment=""}
+precis(s1.full.model) 
+exp(coef(s1.full.model))
+```
+
+The full model for Season 2 is shown below and is almost the same as for Season 1. HK participants are again virtually identical to UK participants, CI slightly lower, and CM much higher. Women again copy more than men, and age again has little effect.
+
+```{r echo=FALSE, eval=TRUE, tidy=TRUE, comment=""}
+precis(s2.full.model) 
+exp(coef(s2.full.model))
+```
+
+## Season 3
+
+For Season 3, the full model and culture model both received support but the full model slightly more:
+
+```{r echo=FALSE, eval=TRUE, tidy=TRUE, comment=""}
+s3.compare
+```
+
+The full model is shown below. CI participants are virtually identical to UK participants, while HK and CM are higher. Both age and sex have very weak effects.
+
+```{r echo=FALSE, eval=TRUE, tidy=TRUE, comment=""}
+precis(s3.full.model)
+exp(coef(s3.full.model))
+```
+
+# Summary
+
+The coefficients and confidence intervals shown here are very similar to the original regression model results shown in Mesoudi et al. (2015), but hopefully more straightforward and understandable. I will soon incorporate task performance into the above, to complete the reanalysis of the original paper.
+
+The data file HKdata.csv and the RMarkdown file containing code for running these reanalyses and producing this document is available at:
+
+<https://github.com/amesoudi/mesoudi_chang_murray_lu_2015>
+
+# References
+
+McElreath, R. (2016). Statistical rethinking: A Bayesian course with examples in r and stan. CRC Press.
+
+Mesoudi, A., Chang, L., Murray, K., & Lu, H. (2015). Higher frequency of social learning in China than in the West shows cultural variation in the dynamics of cultural evolution. Proceedings of the Royal Society B, 282, 20142209.
